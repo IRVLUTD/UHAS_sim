@@ -237,27 +237,27 @@ process_urdf/process_urdf.py
 def make_parser():
     parser = argparse.ArgumentParser(description='Process urdf and create the sphere controller.')
     parser.add_argument('--robot_path', type=str, help='Path to urdf')
-    parser.add_argument('--base_link', type=str, help='Father link of all fingers in robot.urdf (Palm Link)', default='base_link')
+    parser.add_argument('--base_link', type=str, default=None,
+                        help='Father link of all fingers in robot.urdf. If omitted, the URDF root is detected.')
     parser.add_argument('--thumb_anchor', type=float, help='Theta Position to place the thumb in', default=1.571)
     parser.add_argument('--verbose', type=bool, help='Running Program in verbose mode',
                         default=False, action = argparse.BooleanOptionalAction)
-    parser.add_argument('--correct_axes', type=bool, help='Correct the joint positions to center to links, use when the joint origins are not centered in the joint child mesh',  default=False, action = argparse.BooleanOptionalAction)
+    parser.add_argument('--correct_axes', type=bool, help='Correct the joint positions to center to links, use when the joint origins are not centered in the joint child mesh',  default=True, action = argparse.BooleanOptionalAction)
     return parser
 ```
 
 **Key parameters**:
 - `--robot_path`: Path to your `.urdf` file.
-- `--base_link`: Usually `"base_link"` or `"palm_link"`.
+- `--base_link`: Palm / father link of all fingers. Optional — if omitted, the URDF kinematic root is detected automatically.
 - `--thumb_anchor`: Azimuthal angle (in radians) where the thumb should be placed on the sphere (default ≈ π/2).
 - `--verbose`: **Strongly recommended** on first runs. It will display many intermediate images so you can visually verify each step.
-- `--correct_axes`: Helps fix joint axis centering in URDFs, turn it on for most hands.
+- `--correct_axes`: Helps fix joint axis centering in URDFs (on by default). Pass `--no-correct_axes` to disable.
 
 ### Running the Script
 
 ```bash
 cd process_urdf
 python process_urdf.py --robot_path ./grippers/wuji/wuji_right/wuji_right.urdf \
-                       --base_link right_palm_link \
                        --thumb_anchor 1.571 \
                        --verbose
 ```

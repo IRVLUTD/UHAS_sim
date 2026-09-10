@@ -2,7 +2,7 @@
 import numpy as np
 import json
 import os 
-import trimesh.transformations as tf
+import tf_ros as tf
 import time
 from utils_urdf import *
 import colorsys

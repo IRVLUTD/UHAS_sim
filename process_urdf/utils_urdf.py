@@ -5,7 +5,7 @@ import os
 import trimesh
 from urdf_parser_py.urdf import URDF
 import urdf_parser_py
-import trimesh.transformations as tf
+import tf_ros as tf
 import matplotlib.pyplot as plt
 from utils_archive import *
 import pyvista as pv
@@ -133,6 +133,47 @@ def load_link_meshes(robot_dir, robot):
                     except Exception as e:
                         print(f"Failed to load collision mesh {mesh_path} for link {link.name}: {e}")
     return link_meshes
+
+
+def detect_base_link(robot):
+    """Detect the URDF kinematic root used as the palm / base frame.
+
+    Floating links that are never a joint parent (e.g. unused dummy links) are
+    ignored. If several connected roots exist, the tree with the most actuated
+    joints is chosen.
+    """
+    child_links = {joint.child for joint in robot.joints}
+    parent_links = {joint.parent for joint in robot.joints}
+    roots = [link.name for link in robot.links if link.name not in child_links]
+    candidates = [name for name in roots if name in parent_links] or roots
+    if not candidates:
+        raise ValueError("Could not detect base_link: URDF has no links.")
+    if len(candidates) == 1:
+        return candidates[0]
+
+    children_map = {}
+    joint_type_by_child = {}
+    for joint in robot.joints:
+        children_map.setdefault(joint.parent, []).append(joint.child)
+        joint_type_by_child[joint.child] = joint.type
+    actuated = {"revolute", "continuous", "prismatic"}
+
+    def n_actuated(root):
+        count = 0
+        stack = [root]
+        seen = set()
+        while stack:
+            node = stack.pop()
+            if node in seen:
+                continue
+            seen.add(node)
+            for child in children_map.get(node, []):
+                if joint_type_by_child.get(child) in actuated:
+                    count += 1
+                stack.append(child)
+        return count
+
+    return max(candidates, key=n_actuated)
 
 
 def get_unfixed_kin_chains(robot_dir, link_meshes, base_link="base_link", correct_axis = True):

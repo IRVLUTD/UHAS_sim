@@ -2,7 +2,7 @@
 import numpy as np
 import json
 import os 
-import trimesh.transformations as tf
+import tf_ros as tf
 import time
 from utils_urdf import *
 from utils_archive import *
@@ -19,14 +19,15 @@ def make_parser():
     """ Input Parser """
     parser = argparse.ArgumentParser(description='Process urdf and create the sphere controller.')
     parser.add_argument('--robot_path', type=str, help='Path to urdf')
-    parser.add_argument('--base_link', type=str, help='Father link of all fingers in robot.urdf', default='base_link')
+    parser.add_argument('--base_link', type=str, default=None,
+                        help='Father link of all fingers in robot.urdf. If omitted, the URDF root is detected.')
     parser.add_argument('--thumb_anchor', type=float, help='Theta Position to place the thumb in', default=1.571)
     parser.add_argument('--verbose', type=bool, help='Running Program in verbose mode',
                         default=False, action = argparse.BooleanOptionalAction)
     parser.add_argument('--left', type=bool, help='Invert anchors for Left hands',
                         default=False, action = argparse.BooleanOptionalAction)
     parser.add_argument('--correct_axes', type=bool, help='Correct the joint positions to center to links',
-                        default=False, action = argparse.BooleanOptionalAction)
+                        default=True, action = argparse.BooleanOptionalAction)
     return parser
 
 if __name__ == "__main__":
@@ -65,7 +66,17 @@ if __name__ == "__main__":
 
     # Load URDF
     robot = load_urdf(robot_dir)
-    
+
+    link_names = {link.name for link in robot.links}
+    if base_link is None:
+        base_link = detect_base_link(robot)
+        print(f"Auto-detected base_link: {base_link}")
+    elif base_link not in link_names:
+        raise ValueError(
+            f"base_link '{base_link}' is not a link in the URDF. "
+            f"Available links: {sorted(link_names)}"
+        )
+
     # Load meshes
     link_meshes = load_link_meshes(robot_dir, robot)
 
